@@ -18,13 +18,6 @@ def get_db():
     finally:
         db.close()
 
-posts = [
-    {
-        "id":1,
-        "title":"war",
-        "text":"sdadawdasdawdaw"
-    }
-]
 
 @app.get("/posts")
 async def get_posts(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)) -> dict:
@@ -40,7 +33,7 @@ async def get_post(post_id: int, db: Session = Depends(get_db)) -> dict:
     return db_post
 
 
-@app.post("/posts")
+@app.post("/posts", status_code=201)
 async def add_post(post: schemas.Post, db: Session = Depends(get_db)) -> dict:
     return crud.create_post(db, post=post)
 
