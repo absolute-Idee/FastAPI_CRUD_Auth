@@ -1,9 +1,21 @@
-from typing import Union
+import imp
 from fastapi import FastAPI, HTTPException
 from .models import Post
+from .database import connect_database
 
 
 app = FastAPI()
+
+db, posts_table = connect_database()
+
+@app.on_event("startup")
+async def startup():
+    await db.connect()
+
+
+@app.on_event("shutdown")
+async def shutdown():
+    await db.disconnect()
 
 posts = [
     {
@@ -15,7 +27,7 @@ posts = [
 
 @app.get("/posts")
 async def get_posts() -> dict:
-    return posts
+    return posts_table.select()
 
 @app.get("/posts/{post_id}")
 async def get_posts_id(post_id: int) -> dict:
