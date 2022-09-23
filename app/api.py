@@ -4,7 +4,8 @@ from sqlalchemy.orm import Session
 from . import crud, models, schemas
 from .database import SessionLocal, engine
 
-from .schemas import Post
+from .schemas import Post, PostBase
+
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -29,38 +30,26 @@ posts = [
 async def get_posts(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)) -> dict:
     return crud.get_all_posts(db, skip=skip, limit=limit)
 
+
 @app.get("/posts/{post_id}")
-async def get_posts_id(post_id: int) -> dict:
-    if post_id > len(posts):
-        raise HTTPException(status_code=404, detail="No such id")
-    else:
-        for post in posts:
-            if post['id'] == post_id:
-                return {"response": post}
+async def get_post(post_id: int, db: Session = Depends(get_db)) -> dict:
+    db_post = crud.get_post(db, post_id=post_id)
+    if db_post is None:
+        raise HTTPException(status_code=404, detail="Post not found")
+
+    return db_post
+
 
 @app.post("/posts")
-async def add_post(post: Post) -> dict:
-    post.id = len(posts)+1
-    posts.append(post.dict())
-    return {"response": "Post added"}
+async def add_post(post: schemas.Post, db: Session = Depends(get_db)) -> dict:
+    return crud.create_post(db, post=post)
+
 
 @app.put("/posts/{post_id}")
-async def update_post(post: Post) -> dict:
-    if post.id > len(posts):
-        raise HTTPException(status_code=404, detail="No such id")
-    else:
-        for elem in posts:
-            if elem['id'] == post.id:
-                elem['title'] = post.title
-                elem['text'] = post.text
-                return {"response": elem}
+async def update_post(post_id: int, post: PostBase, db: Session = Depends(get_db)) -> dict:
+    return crud.update_or_create_post(db, post_id=post_id, post=post)
 
-@app.delete("/posts/delete/{post_id}")
-async def delete_post(post_id: int) -> dict:
-    if post_id > len(posts):
-        raise HTTPException(status_code=404, detail="No such id")
-    else:
-        for elem in posts:
-            if elem['id'] == post_id:
-                posts.remove(elem)
-                return {"response": posts}
+
+@app.delete("/posts/delete/{post_id}", status_code=204)
+async def delete_post(post_id: int, db: Session = Depends(get_db)) -> dict:
+    return crud.delete_by_id(db, post_id=post_id)
