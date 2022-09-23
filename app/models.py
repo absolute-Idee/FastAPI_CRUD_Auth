@@ -1,7 +1,13 @@
-from pydantic import BaseModel
+from cgitb import text
+from turtle import title
+from sqlalchemy import Column, Integer, String
+
+from .database import Base
 
 
-class Post(BaseModel):
-    id:int
-    title:str
-    text:str
+class Post(Base):
+    __tablename__ = "posts"
+
+    id = Column(Integer, primary_key=True)
+    title = Column(String)
+    text = Column(String)

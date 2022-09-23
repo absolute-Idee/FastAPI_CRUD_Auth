@@ -1,26 +1,12 @@
-import databases
-import sqlalchemy
+from sqlalchemy import create_engine
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
 
+SQLALCHEMY_DATABASE_URL = "sqlite:///./blog.db"
 
-def connect_database():
-    DATABASE_URL = "sqlite:///./blog.db"
+engine = create_engine(
+    SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
+)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-    database = databases.Database(DATABASE_URL)
-
-    metadata = sqlalchemy.MetaData()
-
-    engine = sqlalchemy.create_engine(
-        DATABASE_URL, connect_args={"check_same_thread": False}
-    )
-
-    posts_table = sqlalchemy.Table(
-        "posts",
-        metadata,
-        sqlalchemy.Column("id", sqlalchemy.INTEGER, primary_key=True),
-        sqlalchemy.Column("title", sqlalchemy.String),
-        sqlalchemy.Column("text", sqlalchemy.String),
-    )
-
-    metadata.create_all(engine)
-
-    return database, posts_table
+Base = declarative_base()

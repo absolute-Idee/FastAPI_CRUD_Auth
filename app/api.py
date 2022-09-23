@@ -1,21 +1,21 @@
-import imp
-from fastapi import FastAPI, HTTPException
-from .models import Post
-from .database import connect_database
+from fastapi import FastAPI, HTTPException, Depends
+from sqlalchemy.orm import Session
 
+from . import crud, models, schemas
+from .database import SessionLocal, engine
+
+from .schemas import Post
+
+models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
-db, posts_table = connect_database()
-
-@app.on_event("startup")
-async def startup():
-    await db.connect()
-
-
-@app.on_event("shutdown")
-async def shutdown():
-    await db.disconnect()
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
 posts = [
     {
@@ -26,8 +26,8 @@ posts = [
 ]
 
 @app.get("/posts")
-async def get_posts() -> dict:
-    return posts_table.select()
+async def get_posts(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)) -> dict:
+    return crud.get_all_posts(db, skip=skip, limit=limit)
 
 @app.get("/posts/{post_id}")
 async def get_posts_id(post_id: int) -> dict:
