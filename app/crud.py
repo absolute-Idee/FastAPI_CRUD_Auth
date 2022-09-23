@@ -22,7 +22,12 @@ def create_post(db: Session, post: schemas.PostCreate):
 
 def update_or_create_post(db: Session, post_id: int, post: schemas.PostBase):
     if get_post(db, post_id) is None:
-        return create_post(db, post=post)
+        db_post = models.Post(id = post_id, **post.dict())
+        print(db_post.id)
+        db.add(db_post)
+        db.commit()
+        db.refresh(db_post)
+        return db_post
     else:
         db_post = get_post(db, post_id=post_id)
         db_post.title = post.title
