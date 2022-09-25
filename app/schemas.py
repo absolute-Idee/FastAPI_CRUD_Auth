@@ -1,5 +1,4 @@
 from pydantic import BaseModel, Field
-from uuid import UUID
 
 
 class PostBase(BaseModel):
@@ -19,10 +18,10 @@ class PostCreate(PostBase):
 
 
 class UserAuth(BaseModel):
-    email: str
+    username: str
     password: str = Field(..., min_length=5, max_length=25)
 
 
 class UserOut(BaseModel):
-    id: UUID
-    email: str
+    id: int
+    username: str

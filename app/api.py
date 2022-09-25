@@ -1,5 +1,6 @@
 from uuid import uuid4
 from fastapi import FastAPI, HTTPException, Depends
+from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
 from .auth.utils import get_hashed_password
@@ -24,7 +25,7 @@ def get_db():
 
 @app.post("/signup", summary='Create new user')
 async def create_user(user: UserAuth, db: Session = Depends(get_db)):
-    db_user = db.query(models.User).filter(models.User.email == user.email).first()
+    db_user = db.query(models.User).filter(models.User.username == user.username).first()
     if db_user is not None:
         raise HTTPException(status_code=400, detail="User already exists")
     
@@ -34,6 +35,11 @@ async def create_user(user: UserAuth, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(db_user)
     return db_user
+
+
+@app.post("/login", summary='Create access and refresh tokens')
+async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+    print(form_data.username)
 
 
 @app.get("/posts", tags=["api"])
