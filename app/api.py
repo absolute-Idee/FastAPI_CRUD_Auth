@@ -3,7 +3,7 @@ from fastapi import FastAPI, HTTPException, Depends
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
-from .auth.utils import get_hashed_password
+from .auth.utils import get_hashed_password, verify_password, create_access_token, create_refresh_token
 
 from . import crud, models
 from .database import SessionLocal, engine
@@ -39,7 +39,17 @@ async def create_user(user: UserAuth, db: Session = Depends(get_db)):
 
 @app.post("/login", summary='Create access and refresh tokens')
 async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
-    print(form_data.username)
+    signed_user = db.query(models.User).filter(models.User.username == form_data.username).first()
+    if signed_user is None:
+        raise HTTPException(status_code=400, detail='Incorrect username or password')
+    
+    if not verify_password(form_data.password, signed_user.password):
+        raise HTTPException(status_code=400, detail='Incorrect username or password')
+
+    return {
+        "access_token": create_access_token(signed_user.username),
+        "refresh_token": create_refresh_token(signed_user.username)
+    }
 
 
 @app.get("/posts", tags=["api"])
