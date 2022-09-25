@@ -1,10 +1,13 @@
+from uuid import uuid4
 from fastapi import FastAPI, HTTPException, Depends
 from sqlalchemy.orm import Session
 
-from . import crud, models, schemas
+from .auth.utils import get_hashed_password
+
+from . import crud, models
 from .database import SessionLocal, engine
 
-from .schemas import Post, PostBase
+from .schemas import Post, PostBase, UserOut, UserAuth
 
 
 models.Base.metadata.create_all(bind=engine)
@@ -17,6 +20,20 @@ def get_db():
         yield db
     finally:
         db.close()
+
+
+@app.post("/signup", summary='Create new user')
+async def create_user(user: UserAuth, db: Session = Depends(get_db)):
+    db_user = db.query(models.User).filter(models.User.email == user.email).first()
+    if db_user is not None:
+        raise HTTPException(status_code=400, detail="User already exists")
+    
+    user.password = get_hashed_password(user.password)
+    db_user = models.User(**user.dict())
+    db.add(db_user)
+    db.commit()
+    db.refresh(db_user)
+    return db_user
 
 
 @app.get("/posts", tags=["api"])
@@ -34,7 +51,7 @@ async def get_post(post_id: int, db: Session = Depends(get_db)) -> dict:
 
 
 @app.post("/posts", status_code=201, tags=["api"])
-async def add_post(post: schemas.Post, db: Session = Depends(get_db)) -> dict:
+async def add_post(post: Post, db: Session = Depends(get_db)) -> dict:
     return crud.create_post(db, post=post)
 
 
