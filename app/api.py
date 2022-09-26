@@ -1,4 +1,3 @@
-from uuid import uuid4
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
@@ -8,7 +7,8 @@ from .auth.utils import get_hashed_password, verify_password, create_access_toke
 from . import crud, models
 from .database import SessionLocal, engine
 
-from .schemas import Post, PostBase, UserOut, UserAuth
+from .schemas import Post, PostBase, SystemUser, UserOut, UserAuth
+from .deps import get_current_user
 
 
 models.Base.metadata.create_all(bind=engine)
@@ -23,8 +23,13 @@ def get_db():
         db.close()
 
 
-@app.post("/signup", summary='Create new user')
-async def create_user(user: UserAuth, db: Session = Depends(get_db)):
+@app.get('/me', summary='Get details of currently logged in user')
+async def get_me(user: SystemUser = Depends(get_current_user)):
+    return user
+
+
+@app.post("/signup", summary='Create new user', tags=["auth"])
+async def create_user(user: UserAuth, db: Session = Depends(get_db)) -> dict:
     db_user = db.query(models.User).filter(models.User.username == user.username).first()
     if db_user is not None:
         raise HTTPException(status_code=400, detail="User already exists")
@@ -37,8 +42,8 @@ async def create_user(user: UserAuth, db: Session = Depends(get_db)):
     return db_user
 
 
-@app.post("/login", summary='Create access and refresh tokens')
-async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+@app.post("/login", summary='Create access and refresh tokens', tags=["auth"])
+async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)) -> dict:
     signed_user = db.query(models.User).filter(models.User.username == form_data.username).first()
     if signed_user is None:
         raise HTTPException(status_code=400, detail='Incorrect username or password')

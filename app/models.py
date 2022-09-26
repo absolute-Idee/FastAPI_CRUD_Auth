@@ -1,5 +1,3 @@
-from cgitb import text
-from turtle import title
 from sqlalchemy import Column, Integer, String
 
 from .database import Base
